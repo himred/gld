@@ -1,0 +1,126 @@
+01/05/2006 : V 1.7
+
+	- Removed the KEEPDBOPEN option as it could lead to multiple instance of gld running
+	  when mail traffic is low and thus father process MYSQL connection timeout .
+	  Furthermore, after tests, efficency is the same .
+	 
+	  KEEPDBOPEN option is now silently ignored to forced to NO .
+
+
+16/09/2005 : V 1.6
+
+	- Removed the algorithm lightgreydomain as the new mxgrey does better and simpler
+
+	- Removed the UPDATE option, now gld always update triplets .
+
+	- Fixed a minor flaw in the MXGREY algorithm.
+
+	- Now you can configure MXGREY to consider an ip as a safe MX after X succesful
+	  greylists instead of only 1 . (read gld.conf for details)
+
+	- Now gld updates the counters only when mail is not greylisted
+
+	- Added Training mode, read gld.conf for details
+
+	- Now gld verify that if you supply a custom smtp code, it's a 4XX code
+	  otherwise gld discard it and use 450 .
+
+	- If gld cannot connect to MySQL server on startup
+	  it will not refuse to run anymore, but will set keepdbopen to 0 and accept to run .
+
+	- The sample config file provided now only listen to loopback
+	  only accept connection from localhost and runs as nobody/ nobody.
+
+	WARNING: if you were using lightgreydomain algorithm, it has been discontinued
+	use MXGREY in place, please read gld.conf for details.
+
+
+21/04/2005 : V 1.5.2
+
+	- Fixed a bug in MXGREY algorithm
+
+
+13/04/2005 : V 1.5
+
+	- Fixed several possible buffer overflow by removing all sprintf() calls
+	and replacing them by snprintf()
+
+	- Added pgsql support, use configure --with-pgsql to compile
+	gld with pgsql support
+
+	- Added the MXGREY parameter, please read gld.conf for details.
+
+	- Added KEEPDBOPEN parameter, please read gld.conf for details.
+
+	- Added Configurable SMTP return code 
+
+	- Updated the white list to the lastest known.
+
+
+19/08/2004 : V 1.4
+
+	- Added the USER and GROUP parameters to allow running gld
+	  as a specific user/group instead of root.
+
+	- Added the LIGHTGREYDOMAIN parameter for greylisting on domains
+	  please read gld.conf for details.
+
+	- Added CLIENTS parameter, to restrict clients allowed to connect to gld.
+
+
+15/08/2004 : V 1.3.1
+
+	- Parameters are now checked to avoid a possible buffer overflow
+
+	- Parameters are now checked to avoid a possible SQL injection
+
+	- Fixed the bug which makes gld crash when displaying infos for an empty database
+
+
+19/07/2004 : V 1.3
+
+	- Now, when LIGHTGREY is active, full ip+network is checked in whitlists
+	  instead of the network only.
+
+	- Added the LOOPBACKONLY parameter, to make gld listen only to loopback (127.0.0.1) .
+
+	- Added the DNSW parameter for DNS whitelist support (cf DNSWL in gld.conf)
+
+	- Added the FACILITY parameter to define the syslog facility we want to use
+
+	- Added the -C switch to simulate what -c would do
+
+	- Added the -k and -K switchs to clean the one hits entries in the database
+
+	- Added the -i switch to display some database informations
+
+	- Added the -d switch to enable debug mode
+
+	- Added in the documentation a mini howto to setup postfix to greylist only some emails/domains.
+
+	
+25/06/2004 : V 1.2
+
+	- Improved child management to avoid zombies on some BSD.
+	  Thanks to Michael Rasmussen <mir@datanom.net> that solved the bug that caused 
+	  gld to leave spawned children as zombies on BSD.
+	
+	- Added the light greylisting algorithm (cf LIGHTGREY parameter in gld.conf).
+
+	- Added the -c option to gld to clean up the database (try gld -h).
+
+	- All options have now a default value and are no more mandatory.
+
+	- gld now use a configure script and should be easier to compile on some unixes.
+
+	- Improved documentation and given a postfix configuration example.
+
+
+20/06/2004 : V 1.1
+
+	- Some tries, this version has never been released.
+
+
+10/05/2004 : V 1.0
+
+	- Initial release.

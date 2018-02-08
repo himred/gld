@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# gld : Postfix greylist server
+#
+# chkconfig: 2345 78 31
+# description: Postfix greylist server
+#              
+# processname: gld
+# config: /etc/gld.conf
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ "${NETWORKING}" = "no" ] && exit 0
+
+PROG=/usr/local/bin/gld
+
+# See how we were called.
+case "$1" in
+  start)
+
+        # Start daemons.
+        echo -n "Starting gld: "
+        $PROG
+        echo
+        exit 0
+        ;;
+  stop)
+        # Stop daemons.
+        echo -n "Stopping gld: "
+        killall $PROG
+        exit 0
+        ;;
+  restart)
+        # Stop/Start
+        $0 stop
+	sleep 1
+        $0 start
+        ;;
+  reload)
+        # Reload the configuration
+	killall -HUP $PROG
+	exit 0
+        ;;
+	
+  *)
+        echo "Usage: gld {start|stop|restart|reload}"
+        exit 1
+esac
+
+exit 0

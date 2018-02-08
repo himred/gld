@@ -1,0 +1,34 @@
+all: gld
+
+gld: cnf.o server.o sql.o sockets.o greylist.o gld.h
+	@CC@ -O2 @DEFS@ -Wall server.o sql.o sockets.o cnf.o greylist.o @LIBS@ @SQL_LIBS@ -o gld
+	strip gld
+
+sockets.o: sockets.c sockets.h
+	@CC@ -O2 @DEFS@ -Wall -c sockets.c
+
+cnf.o: cnf.c gld.h
+	@CC@ -O2 @DEFS@ -Wall -c cnf.c
+
+greylist.o: greylist.c gld.h
+	@CC@ -O2 @DEFS@ -Wall -c greylist.c
+
+server.o: server.c gld.h
+	@CC@ -O2 @DEFS@ -Wall -c server.c
+
+sql.o: sql.c
+	@CC@ -O2 @DEFS@ @SQL_CFLAGS@ -Wall -c sql.c
+
+clean:
+	rm -f  gld *.o
+
+install: gld gld.conf
+	mkdir -p /usr/local/bin
+	cp gld /usr/local/bin
+	chmod 700 /usr/local/bin/gld
+	cp gld.conf /etc/gld.conf.sample
+	chmod 600 /etc/gld.conf.sample
+
+distclean: clean
+	rm -f Makefile config.status config.log config.cache
+	rm -rf autom4te.cache

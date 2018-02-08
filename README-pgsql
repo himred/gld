@@ -1,0 +1,6 @@
+#install notes for pgsql
+
+createuser glduser
+createdb -U glduser glddbname
+psql -U glduser -d glddbname < tables.pgsql
+psql -U glduser -d glddbname < data.sql

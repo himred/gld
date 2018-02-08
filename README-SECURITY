@@ -1,0 +1,30 @@
+Hello,
+
+If you are reading this, this means that security is important for you
+it's a good point, then please follow this simple rules to avoid future problems.
+
+
+Rule #1: 
+	Never run gld as root, run gld as a low privilege user, such nobody/nobody
+
+Rule #2:
+	If you have only one mail server, I advice you to run gld on it
+	and to make sure that:
+		- LOOPBACKONLY is set to 1
+		- CLIENTS is set to 127.0.0.1/32
+	This will only allow localhost to connect on gld which will listen only to localhost.
+	This way, even if a buffer overflow,hack is found, no one would be able to exploit it remotly.
+
+Rule #3: 
+	If your gld server is not on your smtp server, please make sure that:
+		- CLIENTS is set to your mail servers IPs only
+	
+	This way, only your mail servers will be allowed to connect on gld.
+	This way, even if a buffer overflow,hack is found, no one would be able to exploit it remotly.
+
+
+Rule #4:
+	Make sure, you use the latest version and update on a regular basis.
+
+
+Salim

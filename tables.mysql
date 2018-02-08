@@ -1,0 +1,16 @@
+CREATE TABLE greylist (
+  ip char(16) NOT NULL default '',
+  sender char(242) NOT NULL default '',
+  recipient char(242) NOT NULL default '',
+  first int(11) NOT NULL default '0',
+  last int(11) NOT NULL default '0',
+  n int(11) NOT NULL default '0',
+  PRIMARY KEY  (ip,sender,recipient)
+) TYPE=MyISAM COMMENT='greylist';
+    
+
+CREATE TABLE whitelist (
+  mail char(242) NOT NULL default '',
+  comment char(242) NOT NULL default '',
+  PRIMARY KEY  (mail)
+) TYPE=MyISAM;
