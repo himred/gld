@@ -49,7 +49,7 @@ To configure postfix just add the following line:
 
     check_policy_service inet:127.0.0.1:2525
 
-to the end of your smtpd_recipient_restrictions statement of your main.cf file.
+to the end of your smtpd_recipient_restrictions statement of your main.cf file.  
 You don't have to edit or modify your master.cf file .
 
 
