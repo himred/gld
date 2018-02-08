@@ -139,6 +139,12 @@ Just send a mail to salim@gasmi.net (of course this email is greylisted ..)
 But please, include the version of gld you use and the OS you are running.
 
 
+# Updates
+gld is a perfectly working greylisting server.  
+As greylisting and SMTP protocol has not changed in the last years, gld last update is May 2006.
+If any security issue should be discovered, I will patch the code but don't expect new features.  
+
+
 # Note from the author:
 
 I want to thanks all people who mailed me with suggestions, patches and especially the following guys:
