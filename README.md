@@ -13,7 +13,7 @@ gld needs the following software:
 
 # How to build gld ?
 
-This should be easy, just run `./configure` and then make and wait ...
+This should be easy, just run `./configure` and then make and wait ...  
 Of course you need to have include files and libraries for MySQL support.
 
 If the compilation fails with mysql related errors, try to run `./configure --with-mysql=DIR` .
