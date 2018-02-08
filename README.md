@@ -143,12 +143,12 @@ But please, include the version of gld you use and the OS you are running.
 # Note from the author:
 
 I want to thanks all people who mailed me with suggestions, patches and especially the following guys:
-		- Lefteris Tsintjelis for his help and support for testing 1.6.
-		- Dietmar Braun for his idea of the training mode.
-		- Wayne Smith for his support and suggestions.
-		- Santiago Vila for maintaining the Debian package.
-		- Blaz Zupan for maintaining the FreeBSD port.
-		- Volker Tanger for the nice howto.
-		- Brian Truelsen for his help and suggestions on MXGREY.
-		- Wietse Venema for postfix.
+- Lefteris Tsintjelis for his help and support for testing 1.6.
+- Dietmar Braun for his idea of the training mode.
+- Wayne Smith for his support and suggestions.
+- Santiago Vila for maintaining the Debian package.
+- Blaz Zupan for maintaining the FreeBSD port.
+- Volker Tanger for the nice howto.
+- Brian Truelsen for his help and suggestions on MXGREY.
+- Wietse Venema for postfix.
 
