@@ -1,4 +1,4 @@
-#What is gld ?
+##What is gld ?
 
 	gld stands for GreyList Daemon.
 	gld is a standalone policy delegation server for postfix that implements
