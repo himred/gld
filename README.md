@@ -135,7 +135,7 @@ and you are done ! .
 
 # Where do I report bugs,suggestions,insults ?
 
-Just send a mail to salim@gasmi.net (of course this email is greylisted ..)
+Just send a mail to salim@gasmi.net (of course this email is greylisted ..)  
 But please, include the version of gld you use and the OS you are running.
 
 
