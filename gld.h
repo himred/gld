@@ -11,6 +11,7 @@
 #include <sys/shm.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
 
 #include <pwd.h>
 #include <grp.h>
@@ -36,8 +37,20 @@
 #define MSGGREYLIST	0
 #define MSGLOCALWL	1
 #define MSGDNSWL	2
+#define MSGLOCALWLDNS	3
 
-#define VERSION "1.7"
+#define VERSION "1.7.2"
+
+#ifndef   NI_MAXHOST
+#define   NI_MAXHOST 1025
+#endif
+
+#define MAXLEVEL 5
+
+struct result {
+	int total;
+	char domain[MAXLEVEL][NI_MAXHOST];
+};
 
 typedef struct network
 {
@@ -53,6 +66,7 @@ typedef struct config
 	int syslog;			// Shall we write to the syslog
 	int accept;			// Shall we return OK in case of error
 	int whitelist;			// Shall we lookup the whitelist table
+	int wlbydnsnodes;		// Shall we use whitelisting by DNS nodes? E.g. .google.com
 	int light;			// Shall we use light greylisting ?
 	int facility;			// Syslog facility to use
 	int loopback;			// Shall we bind only to loopback
@@ -92,3 +106,4 @@ unsigned long Hash(char *ip);
 int CheckIP(config *conf,char *ip);
 unsigned long CidrMsk(int msk);
 int MyDaemon(int nochdir, int noclose);
+int doubleDNSlookup(char *ip, struct result *dom, config *conf);

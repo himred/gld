@@ -48,6 +48,7 @@ conf->mini=60;
 conf->syslog=1;
 conf->accept=1;
 conf->whitelist=1;
+conf->wlbydnsnodes=1;
 conf->light=0;
 conf->dnswl[0]=0;
 conf->loopback=1;
@@ -87,6 +88,7 @@ while(fgets(buffer,1024,fic)!=NULL)
                 if(strcmp(buffer,"SYSLOG")==0) conf->syslog=atoi(p+1);
                 if(strcmp(buffer,"ERRACCEPT")==0) conf->accept=atoi(p+1);
                 if(strcmp(buffer,"WHITELIST")==0) conf->whitelist=atoi(p+1);
+                if(strcmp(buffer,"DNSWLBYNODES")==0) conf->wlbydnsnodes=atoi(p+1);
                 if(strcmp(buffer,"LIGHTGREY")==0) conf->light=atoi(p+1);
                 if(strcmp(buffer,"LOOPBACKONLY")==0) conf->loopback=atoi(p+1);
 		#ifdef HAVE_SYSLOG_H
@@ -110,6 +112,7 @@ openlog("gld",0,conf->facility);
 if(white==MSGGREYLIST) syslog(LOG_NOTICE,"Greylist activated for recipient=<%s> sender=<%s> ip=<%s>",recipient,sender,ip);
 if(white==MSGLOCALWL) syslog(LOG_NOTICE,"Local whitelist hit for recipient=<%s> sender=<%s> ip=<%s>",recipient,sender,ip);
 if(white==MSGDNSWL) syslog(LOG_NOTICE,"DNS whitelist hit for recipient=<%s> sender=<%s> ip=<%s>",recipient,sender,ip);
+if(white==MSGLOCALWLDNS) syslog(LOG_NOTICE,"Local DNS node whitelist hit for recipient=<%s> sender=<%s> %s",recipient,sender,ip);
 closelog();
 #endif
 }
@@ -122,6 +125,8 @@ syslog(LOG_ALERT,"%s",msg);
 closelog();
 #endif
 }
+
+// We will need to replace this code, which only supports IPv4 FIXME
 
 int ReadClients(config *conf,char *str)
 {
@@ -191,4 +196,97 @@ for(i=0;i<msk;i++)
 
 x=htonl(x);
 return(x);
+}
+
+
+int doubleDNSlookup(char *ip, struct result *dom, config *conf)
+{
+    struct sockaddr_in sa4;
+    struct sockaddr_in6 sa6;
+    struct addrinfo *result;
+    struct addrinfo *res;
+
+    char msg[NI_MAXHOST];
+    char host[NI_MAXHOST];
+    char addr[INET6_ADDRSTRLEN];
+    char *p;
+    static char rfc1123_chars[] = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890_-.";
+
+    int error = 0;
+    int nodes = 0;
+    int match = 0;
+    int sanitize = 0;
+
+    /* Use getnameinfo() to find the reverse lookup of the supplied IP address */
+    if (inet_pton(AF_INET6, ip, &sa6.sin6_addr) == 1) { /* IPv6 address? */
+	sa6.sin6_family = AF_INET6;
+	error = getnameinfo((struct sockaddr *)&sa6, sizeof(sa6), host, sizeof(host), NULL, 0, NI_NAMEREQD);
+    } else { /* IPv4 */
+	sa4.sin_family = AF_INET;
+	inet_pton(AF_INET, ip, &sa4.sin_addr);
+	error = getnameinfo((struct sockaddr *)&sa4, sizeof(sa4), host, sizeof(host), NULL, 0, NI_NAMEREQD);
+    }
+
+    if (error) {
+	if (conf->debug == 1) printf("Could not resolve \"%s\" (%s)\n", ip, gai_strerror(error));
+	return(0); /* Name resolution failed */
+    } else {
+	if (conf->debug == 1) printf("Name queuery returned \"%s\"\n", host);
+	/* Be paranoid and sanitize result since it's used in a SQL query later. Idea from Tripwire and cert.org. */
+	/* https://www.securecoding.cert.org/confluence/display/c/STR02-C.+Sanitize+data+passed+to+complex+subsystems */
+	char *cp = host;
+	const char *end = host + strlen(host);
+	for (cp += strspn(cp, rfc1123_chars); cp != end; cp += strspn(cp, rfc1123_chars)) {
+		*cp = '-';
+		sanitize++;
+	}
+	if (sanitize > 0) {
+		snprintf(msg, sizeof(msg)-1, "WARNING: Name sanitization returned \"%s\"", host);
+		ErrorLog(conf, msg);
+	}
+	/* Extract nodes from the domain name, start from left and extract at most MAXLEVEL nodes */
+	for (p = strchr(host, '.'); p != NULL; p = strchr(p + 1, '.')) {
+		strncpy(dom->domain[nodes++], p, NI_MAXHOST-1);
+		if (conf->debug == 1) printf("Found node \"%s\"\n", p);
+		if (nodes == MAXLEVEL) {
+			if (conf->debug == 1) printf("Reached MAXLEVEL on nodes.\n");
+			break;
+		}
+	}
+	if (nodes == 1) {
+		strncpy(dom->domain[nodes++], host, NI_MAXHOST-1);
+		if (conf->debug == 1) printf("Only found a TLD node, adding \"%s\"\n", host);
+	}
+    }
+
+    /* We could resolve IP to a PTR RR, try to get a A or AAAA RR from the returned PTR RR */
+    error = getaddrinfo(host, NULL, NULL, &result);
+    if (error != 0) {
+	if (error == EAI_SYSTEM) {
+		snprintf(msg, sizeof(msg)-1, "doubleDNSlookup(): error from getaddrinfo: ERRNO %d", errno);
+		ErrorLog(conf, msg);
+        } else {
+		if (conf->debug == 1) printf("Error from getaddrinfo: %s", gai_strerror(error));
+        }
+        return(0);
+    }
+
+    /* Loop over the returned results and see if the original IP address matches */
+    for (res = result; res != NULL; res = res->ai_next) {
+	switch (res->ai_family) {
+		case AF_INET:
+			p = (char *)&((struct sockaddr_in *) res->ai_addr)->sin_addr;
+			break;
+		case AF_INET6:
+			p = (char *)&((struct sockaddr_in6 *) res->ai_addr)->sin6_addr;
+			break;
+	}
+	inet_ntop(res->ai_family, p, addr, INET6_ADDRSTRLEN);
+	if (conf->debug == 1) printf("IPv%d address: %s (%s)\n", res->ai_family == PF_INET6 ? 6 : 4, addr, (!strncmp(ip, addr, strlen(ip))) ? "match" : "no match");
+	if (!strncmp(ip, addr, strlen(ip)))
+		match++;
+    }
+    freeaddrinfo(result);
+    dom->total = nodes;
+    return(match);
 }

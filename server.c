@@ -17,7 +17,9 @@ struct passwd *user;
 
 if(argc==2 && strcmp(argv[1],"-v")==0)
 	{
-	printf("gld %s <salim@gasmi.net> <http://www.gasmi.net>\n",VERSION);
+	printf("gld %s <salim@gasmi.net> <http://www.gasmi.net>\n\
+IPv6 and support for multiple DNS whitelists adapted from gld-ng (<patrick@vande-walle.eu>) by <fredrik@xpd.se>\n\
+DNS nodes double lookup whitelist by <fredrik@xpd.se>\n",VERSION);
 	exit(0);
 	}
 
@@ -377,6 +379,7 @@ ReadConfig(CONF,&conf);
 int MyDaemon(int nochdir, int noclose)
 {
 int fd;
+int unused __attribute__((unused));
 
 switch (fork()) {
         case -1:
@@ -388,7 +391,7 @@ switch (fork()) {
 }
 
 if(setsid() == -1) return(-1);
-if(!nochdir) (void)chdir("/");
+if(!nochdir) unused = chdir("/");
 
 if(!noclose && (fd = open("/dev/null", O_RDWR, 0)) != -1)
         {

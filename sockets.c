@@ -491,7 +491,7 @@ if( (nfds = select(s + 1, &readfds, NULL, NULL, &timeout )) < 0)
 
 if (nfds > 0)
     {
-           nbytes=recvfrom(s,buffer,maxsize,0,(struct sockaddr *)0,(int *)0);
+           nbytes=recvfrom(s,buffer,maxsize,0,(struct sockaddr *)0,(socklen_t *)0);
            if(nbytes<0) return(S_RECV_ERR); else return(nbytes);
     }
     else return(S_TIME_ERR);
@@ -640,7 +640,7 @@ struct hostent *hostptr;
 strcpy(ipfrom,"???.???.???.???");
 strcpy(hostfrom,"?????");
 
-if (getpeername(sock,(struct sockaddr *)&from, &foo) == 0)
+if (getpeername(sock,(struct sockaddr *)&from, (socklen_t *)&foo) == 0)
      {
      strcpy(ipfrom,(char *)inet_ntoa(from.sin_addr));
      hostptr=(struct hostent *)gethostbyaddr((char *)&from.sin_addr,sizeof(struct in_addr),AF_INET);
@@ -723,7 +723,7 @@ int WaitTcpServer(TcpServer serv)
 {
 
 size_t foo=sizeof(serv.sin);
-return(accept(serv.sd,(struct sockaddr *)&(serv.sin),&foo));
+return(accept(serv.sd,(struct sockaddr *)&(serv.sin),(socklen_t *)&foo));
 }
 
 /************************************************/

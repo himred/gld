@@ -8,16 +8,17 @@ char query[QLEN];
 long n,x;
 int ts;
 char *domain;
-char netw[32];
+char netw[BLEN];
 int i,l;
-char oip[32];
+char oip[BLEN];
 int a,b,c,d;
 int pid;
 char osender[BLEN];
 char orecipient[BLEN];
+struct result found;
+struct in6_addr ip6result;
 
 pid=getpid();
-
 ts=time(0);
 strncpy(oip,ip,sizeof(oip)-1);
 strncpy(osender,sender,sizeof(osender)-1);
@@ -26,9 +27,9 @@ strncpy(orecipient,recipient,sizeof(orecipient)-1);
 if(conf->debug==1) printf("%d: Starting the greylist algo\n",pid);
 
 //
-// If we do lightgreylisting, then we just keep the network part of ip
+// If we do lightgreylisting, then we just keep the network part of ip (FIXME: IPv6)
 //
-if(conf->light==1)
+if ((conf->light==1) && (inet_pton(AF_INET6, oip, &ip6result) != 1))
 {
 	if(conf->debug==1) printf("%d: lightgrey is on, let's remove the last octet of ip\n",pid);
 	l=strlen(ip);
@@ -96,18 +97,18 @@ if(conf->whitelist==1)
 	domain=(char *)strstr(osender,"@");
 	if(domain==NULL) domain=osender;
 
-	strncpy(netw,oip,sizeof(netw)-1);
-	l=strlen(netw);
-	for(i=l-1;i>=0;i--)
-	{
-		if(netw[i]=='.')
-		{
-			netw[i]=0;
-			break;
+	if (inet_pton(AF_INET6, oip, &ip6result) != 1) { /* FIXME: Only IPv4 */
+		strncpy(netw,oip,sizeof(netw)-1);
+		l=strlen(netw);
+		for(i=l-1;i>=0;i--) {
+			if(netw[i]=='.') {
+				netw[i]=0;
+				break;
+			}
 		}
 	}
 
-	snprintf(query,sizeof(query)-1,"select count(mail) from whitelist where mail in ('%s','%s','%s','%s')",osender,domain,oip,netw);
+	snprintf(query, sizeof(query)-1, "SELECT COUNT(mail) FROM whitelist WHERE mail IN ('%s', '%s', '%s', '%s')", osender, domain, oip, netw);
 	n=SQLQuery(query);
 	if(conf->debug==1) printf("%d: Query=(%s) result=%ld\n",pid,query,n);
 	if(n>0)
@@ -117,26 +118,63 @@ if(conf->whitelist==1)
 	}
 }
 
-//
-// then we check the DNS whitelist
-//
-if(conf->dnswl[0]!=0)
-{
-	if(conf->debug==1) printf("%d: DNS whitelist is on\n",pid);
-	x=sscanf(oip,"%d.%d.%d.%d",&a,&b,&c,&d);
-	if(x==4)
-	{
-		snprintf(query,sizeof(query)-1,"%d.%d.%d.%d.%s",d,c,b,a,conf->dnswl);
-		n=DnsIp(query,NULL);
-		if(conf->debug==1) printf("%d: DNSQuery=(%s) result=%ld\n",pid,query,n);
-		if(n==0)
-		{
-			if(conf->syslog==1) Log(conf,orecipient,osender,oip,MSGDNSWL);
-			return(1);
-		}
+if (conf->wlbydnsnodes == 1) {
+	/* If oip resolves to xyz.google.com and xyz.google.com resolves to oip,
+	   search whitelist for .google.com, if no match, return NULL */
+	if (conf->debug==1) printf("%d: whitelist by DNS node is on\n", pid);
+	if (conf->debug==1) printf("%d: doing double DNS lookup on \"%s\"\n", pid, oip);
+	if ((i = doubleDNSlookup(oip, &found, conf)) != 0) {
+		if (conf->debug==1)printf("%d: found %d matching IP addresses\n", pid, i);
+		if (found.total != 0) {
+			if (conf->debug==1) printf("%d: found %d domains\n", pid, found.total);
+			snprintf(query, sizeof(query)-1, "SELECT COUNT(mail) FROM whitelist WHERE mail IN (");
+			for (i = 0; i < found.total; i++) {
+				if (conf->debug==1) printf("%d: Adding node = %s\n", pid, found.domain[i]);
+				strcat(query, "'"); /* 'tld.cc' */
+				strncat(query, found.domain[i], 255);
+				if (i == (found.total - 1)) /* Last? */
+					strcat(query, "'");
+				else
+					strcat(query, "', ");
+			}
+			strcat(query, ")");
+			n=SQLQuery(query);
+			if (conf->debug==1) printf("%d: Query=(%s) result=%ld\n", pid, query, n);
+			if (n > 0) {
+				snprintf(query, sizeof(query)-1, "ip=<%s> dns=<%s>", oip, found.domain[0]);
+				if (conf->syslog==1) Log(conf, orecipient, osender, query, MSGLOCALWLDNS);
+				return(1);
+			}
+		} else
+			if (conf->debug==1) printf("%d: found NO nodes\n", pid);
+	} else {
+		if (conf->debug==1) printf("%d: Could not resolve \"%s\".\n", pid, oip);
 	}
 }
 
+//
+// then we check the DNS whitelist (FIXME: IPv6)
+//
+
+if ((conf->dnswl[0]!=0) && (inet_pton(AF_INET6, oip, &ip6result) != 1))
+{
+	if (conf->debug==1) printf("%d: DNS whitelist is on\n",pid);
+	x = sscanf(oip,"%d.%d.%d.%d",&a,&b,&c,&d);
+	if (x==4) { // We need to parse and count the number elements in the conf->dnswl variable
+		char *token;
+		token = strtok(conf->dnswl, " "); /* get the first token */
+		while (token != NULL) { /* walk through other tokens */
+			snprintf(query,sizeof(query)-1,"%d.%d.%d.%d.%s",d,c,b,a,token);
+			n=DnsIp(query,NULL);
+			if (conf->debug==1) printf("%d: DNSQuery=(%s) result=%ld\n",pid,query,n);
+			if (n==0) {
+				if (conf->syslog==1) Log(conf,orecipient,osender,oip,MSGDNSWL);
+				return(1);
+			}
+			token = strtok(NULL, " ");
+		}
+	}
+}
 //
 // If we are here, The mail was not in our database
 // was not whitelisted and thus we have to insert it
@@ -152,7 +190,7 @@ if(conf->debug==1) printf("%d: Query=(%s)\n",pid,query);
 if(conf->mxgrey>0)
 {
 	// check for unique triplets already graylisted from the IP
-	snprintf(query,sizeof(query)-1,"select count(first) from greylist where ip='%s' and n>1",ip);
+	snprintf(query,sizeof(query)-1,"SELECT COUNT(first) FROM greylist WHERE ip='%s' AND n>1",ip);
 	n=SQLQuery(query);
 	if(conf->debug==1) printf("%d: Mxgrey Query=(%s) result=%ld (minimum needed is %d)\n",pid,query,n,conf->mxgrey);
 	// if found, accept it
@@ -165,4 +203,3 @@ if(conf->mxgrey>0)
 return(0);
 
 }
-
