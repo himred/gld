@@ -3,20 +3,20 @@
 gld stands for GreyList Daemon.
 gld is a standalone policy delegation server for postfix that implements
 the greylist algorithm as defined at http://www.greylisting.org
-gld is written in C and use mysql as database.
+gld is written in C and use mysql/mariadb as database.
 
 # What are the requirements ?
 
 gld needs the following software:
 - a postfix 2.1 or higher server
-- a mysql server or a pgsql server
+- a mysql/mariadb server or a pgsql server
 
 # How to build gld ?
 
 This should be easy, just run `./configure` and then make and wait ...  
-Of course you need to have include files and libraries for MySQL support.
+Of course you need to have include files and libraries for MySQL/MariaDB support.
 
-If the compilation fails with mysql related errors, try to run `./configure --with-mysql=DIR` .
+If the compilation fails with mysql/mariadb related errors, try to run `./configure --with-mysql=DIR` .
 
 
 # How to install gld ?
@@ -38,7 +38,7 @@ Then rename it to gld.conf .
 
 Please, **PLEASE** read the **README-SECURITY** file before choosing your options.
 
-Then, create the tables whitelist and greylist on your mysql server
+Then, create the tables whitelist and greylist on your mysql/mariadb server
 I have provided the script tables.sql that helps you to do this task.
 
 Then start gld and see if it run or if an error message is displayed
@@ -74,7 +74,7 @@ ie: `kill -HUP <pid> or killall -HUP gld`
 Just try: `gld -v`
 	
 
-# What happens if the mysql server goes down ?
+# What happens if the mysql/mariadb server goes down ?
 
 Depending on the configuration of gld, the server can refuse to answer
 or send a 'dunno' response, which will likely accept the mails.
